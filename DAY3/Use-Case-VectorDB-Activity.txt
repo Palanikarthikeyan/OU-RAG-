@@ -1,0 +1,150 @@
+
+
+Task : Vectors and Similarity Search
+-------------------------------------------------
+CREATE TABLE IF NOT EXISTS movies (
+    movie_id NUMBER,
+    title VARCHAR2(255) NOT NULL
+        ANNOTATIONS (description 'The title of the movie'),
+    genre VARCHAR2(100)
+        ANNOTATIONS (description 'The genre of the movie'),
+    release_year NUMBER(4)
+        ANNOTATIONS (description 'The year the movie was released'),
+    duration_minutes NUMBER(3)
+        ANNOTATIONS (description 'Duration of the movie in minutes'),
+    m_description CLOB 
+        ANNOTATIONS (description 'Detailed desciption of the movie'),
+    questions VECTOR
+        ANNOTATIONS (description 'Holds the value of the embedded movie descriptions after running them through the embedding model'),
+    director VARCHAR2(255)
+        ANNOTATIONS (description 'Director of the movie'),
+        CONSTRAINT movies PRIMARY KEY (movie_id)
+);
+
+CREATE TABLE IF NOT EXISTS customers (
+    customer_id NUMBER
+        ANNOTATIONS (description 'Unique ID for each customer'),
+    first_name VARCHAR2(100)
+        ANNOTATIONS (description 'First name of the customer'),
+    last_name VARCHAR2(100)
+        ANNOTATIONS (description 'Last name of the customer'),
+    email VARCHAR2(255) UNIQUE NOT NULL
+        ANNOTATIONS (description 'Email address of the customer'),
+    signup_date DATE DEFAULT SYSDATE
+        ANNOTATIONS (description 'The date the customer signed up'),
+    has_sub BOOLEAN
+        ANNOTATIONS (description 'Whether the customer has an active subsciption'),
+    CONSTRAINT customers PRIMARY KEY (customer_id)
+);
+
+CREATE TABLE IF NOT EXISTS ratings (
+    rating_id NUMBER
+        ANNOTATIONS (description 'Unique ID for each rating'),
+    customer_id NUMBER
+        ANNOTATIONS (description 'ID of the customer who rated'),
+    movie_id NUMBER
+        ANNOTATIONS (description 'ID of the movie being rated'),
+    rating NUMBER(1) CHECK (rating BETWEEN 1 AND 5)
+        ANNOTATIONS (description 'Rating given to the movie, between 1 and 5'),
+    rating_date DATE DEFAULT SYSDATE
+        ANNOTATIONS (description 'Date when the rating was given'),
+    FOREIGN KEY (customer_id) REFERENCES customers(customer_id),
+    FOREIGN KEY (movie_id) REFERENCES movies(movie_id),
+    CONSTRAINT ratings PRIMARY KEY (rating_id)
+);
+
+# Now that we have our tables, we can add data using the NEW Table Value Constructors
+#  -----------------------------------------------------------------------------------------------------------
+
+INSERT INTO movies (movie_id, title, genre, release_year, duration_minutes, m_description, questions, director)VALUES(1, 'The Grand Budapest Hotel', 'Comedy', 2014, 99,  
+    'Set in a famous European hotel between the wars, The Grand Budapest Hotel is the story of a legendary concierge, M. Gustave, and his friendship with a young employee named Zero. The film weaves a whimsical narrative full of adventure, comedy, and poignant moments, all within the lush, stylized world characteristic of Wes Andersons work. The plot revolves around the theft of a priceless painting, a family inheritance battle, and the rise of fascism, portrayed with a blend of humor and melancholy. The films visual design is as intricate as its narrative, with meticulous attention to detail in its sets, costumes, and cinematography, making it a feast for the eyes as much as for the mind.', 
+    NULL, 'Wes Anderson'),
+
+(2, 'Superbad', 'Comedy', 2007, 113,'Superbad is a hilarious coming-of-age film that follows two inseparable high school friends, Seth and Evan, during their last days of high school. The duo are invited to a party by a girl they like, and they decide that this party is their last chance to lose their virginity before heading off to college. The movie tracks their chaotic journey to secure alcohol for the party, leading to a series of absurd and comedic misadventures. With a mix of crude humor and heartfelt moments, Superbad captures the anxiety, excitement, and sheer awkwardness of adolescence, backed by strong performances from its young cast.', 
+    NULL, 'Greg Mottola'),
+
+(3, 'Shaun of the Dead', 'Comedy', 2004, 99, 'Shaun of the Dead is a British horror-comedy that blends elements of zombie movies with sharp, witty humor. The story follows Shaun, a man stuck in a mundane life, as he attempts to win back his girlfriend, reconcile with his mother, and deal with the sudden outbreak of a zombie apocalypse. The film is known for its clever dialogue, memorable characters, and a perfect balance of horror and comedy. It offers a fresh take on the zombie genre while exploring themes of responsibility, friendship, and personal growth in the most unexpected of circumstances.', 
+    NULL, 'Edgar Wright'),
+
+(4, 'In Bruges', 'Comedy', 2008, 107, 'In Bruges is a darkly comedic crime drama set in the picturesque medieval town of Bruges, Belgium. The story follows two hitmen, Ray and Ken, who are sent to Bruges by their ruthless boss after a job goes wrong. As they await further instructions, the two men have very different reactions to the town: Ken enjoys the sights, while Ray finds it unbearable. The film is a mix of humor, tragedy, and moral dilemmas, with sharp dialogue and strong performances, particularly from Colin Farrell as the guilt-ridden Ray. The movie explores themes of redemption, guilt, and the consequences of violence, all set against the backdrop of one of Europes most beautiful cities.', 
+    NULL, 'Martin McDonagh'),
+
+(5, 'Mean Girls', 'Comedy', 2004, 97,  
+    'Mean Girls is a teen comedy that satirizes the social hierarchy of high school life. The film follows Cady Heron, a teenager who moves to the United States after being homeschooled in Africa. She soon finds herself navigating the complex social dynamics of her new high school, where she becomes entangled with a popular clique known as The Plastics. The movie is both a hilarious and insightful look at the pressures and pitfalls of adolescence, with memorable characters and sharp, quotable dialogue. Mean Girls has become a cultural touchstone, beloved for its humor and its accurate portrayal of high school life.', 
+    NULL, 'Mark Waters'),
+
+(6, 'Step Brothers', 'Comedy', 2008, 98,  
+    'Step Brothers is a raucous comedy about two middle-aged, spoiled men who are forced to live together when their single parents marry. Brennan and Dale, played by Will Ferrell and John C. Reilly, initially despise each other, but eventually bond over their shared immaturity and love of absurd activities. The film is full of outrageous humor, ridiculous situations, and over-the-top performances. It explores themes of family, friendship, and the challenges of growing up—albeit in the most hilarious and unconventional ways. Step Brothers is known for its memorable one-liners and its unique brand of comedy that pushes the boundaries of good taste.', 
+    NULL, 'Adam McKay'),
+
+(7, 'Anchorman', 'Comedy', 2004, 94,  
+    'Anchorman: The Legend of Ron Burgundy is a satirical comedy that takes a humorous look at the male-dominated world of 1970s television news. The film follows Ron Burgundy, a charismatic yet chauvinistic anchorman, and his team of equally clueless colleagues as they face off against a new female co-anchor, Veronica Corningstone. The movie is a wild ride of absurd humor, over-the-top characters, and sharp social commentary on gender roles and media culture. With its memorable quotes and hilarious performances, particularly from Will Ferrell as Ron Burgundy, Anchorman has become a cult classic that continues to entertain audiences.', 
+    NULL, 'Adam McKay'),
+
+(8, 'No Country for Old Men', 'Thriller', 2007, 122,  
+    'No Country for Old Men is a gripping crime thriller that explores the violent consequences of a drug deal gone wrong in the desolate landscapes of West Texas. The story follows Llewelyn Moss, who stumbles upon a suitcase filled with cash at the scene of a botched drug deal, and soon finds himself pursued by the relentless and cold-blooded hitman Anton Chigurh. The film is a tense and atmospheric exploration of fate, morality, and the changing nature of the American West, with powerful performances and a hauntingly minimalist score. Directed by the Coen Brothers, No Country for Old Men is a modern masterpiece that challenges traditional notions of good and evil.', 
+    NULL, 'Joel Coen, Ethan Coen'),
+
+(9, 'The Big Lebowski', 'Comedy', 1998, 117,  
+    'The Big Lebowski is a cult classic comedy that follows Jeff The Dude Lebowski, an easygoing slacker who becomes embroiled in a case of mistaken identity. When two thugs mistake him for a millionaire with the same name, they urinate on his rug, setting off a bizarre chain of events involving kidnapping, ransom, and bowling. The film is a quirky and surreal journey through the eccentric underbelly of Los Angeles, with a memorable cast of characters and endlessly quotable dialogue. Directed by the Coen Brothers, The Big Lebowski is a film that defies genre conventions and remains beloved for its unique blend of humor, oddball characters, and offbeat storytelling.', 
+    NULL, 'Joel Coen'),
+
+(10, 'Memento', 'Thriller', 2000, 113,  
+    'Memento is a psychological thriller that tells the story of Leonard Shelby, a man suffering from short-term memory loss who is determined to find his wifes murderer. The film is structured in a unique and innovative way, with scenes presented in reverse chronological order to reflect Leonards fragmented memory. As Leonard pieces together clues about his wifes death, the audience is drawn into his world of confusion and uncertainty, questioning the nature of truth and memory. Directed by Christopher Nolan, Memento is a masterful exploration of the mind, filled with twists and turns that keep viewers on the edge of their seats until the very end.',NULL, 'Christopher Nolan');   
+
+INSERT INTO customers (customer_id, first_name, last_name, email, signup_date, has_sub)
+VALUES
+(1, 'John', 'Doe', 'john.doe@example.com', SYSDATE, TRUE),
+(2, 'Jane', 'Smith', 'jane.smith@example.com', SYSDATE, TRUE),
+(3, 'Alice', 'Johnson', 'alice.johnson@example.com', SYSDATE, TRUE),
+(4, 'Bob', 'Brown', 'bob.brown@example.com', SYSDATE, TRUE),
+(5, 'Charlie', 'Davis', 'charlie.davis@example.com', SYSDATE, TRUE);
+
+INSERT INTO ratings (rating_id, customer_id, movie_id, rating, rating_date) 
+VALUES(1, 1, 1, 5, SYSDATE),
+(2, 2, 3, 4, SYSDATE),
+(3, 3, 5, 4, SYSDATE),
+(4, 4, 8, 5, SYSDATE),
+(5, 5, 10, 3, SYSDATE);
+
+new SQL function in 23ai VECTOR_DISTANCE. 
+For example, we could take the question, "Can you suggest movies that explore dark or serious themes, but still include humor?"
+SELECT m.title, m.genre, m.director, m.m_description
+FROM movies m
+CROSS JOIN (
+    SELECT embedding AS vector
+    FROM customer_questions
+    WHERE id = 2
+) cq
+ORDER BY VECTOR_DISTANCE(m.questions, cq.vector, EUCLIDEAN)
+FETCH FIRST 4 ROWS ONLY;
+
+SELECT m.title, m.genre, m.director, m.m_description
+FROM movies m
+CROSS JOIN (
+    SELECT embedding AS vector
+    FROM customer_questions
+    WHERE id = 4
+) cq
+ORDER BY VECTOR_DISTANCE(m.questions, cq.vector, EUCLIDEAN)
+FETCH FIRST 4 ROWS ONLY;
+
+Here, the ID = 4 below refers to the ID of the question "What are some feel good movies?"
+
+SELECT m.title, m.genre, m.director, m.m_description
+FROM movies m
+CROSS JOIN (
+    SELECT embedding AS vector
+    FROM customer_questions
+    WHERE id = 3
+) cq
+ORDER BY VECTOR_DISTANCE(m.questions, cq.vector)
+FETCH FIRST 4 ROWS ONLY;
+
+# We can clean up from the lab by dropping our tables.
+DROP TABLE if exists vector_table CASCADE CONSTRAINTS;
+DROP TABLE if exists vector_table_2 CASCADE CONSTRAINTS;
+DROP TABLE if exists movies CASCADE CONSTRAINTS;
+DROP TABLE if exists customers CASCADE CONSTRAINTS;
+DROP TABLE if exists ratings CASCADE CONSTRAINTS;
+#######################################################################
